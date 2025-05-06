@@ -18,7 +18,7 @@ steps:
       - '-c'
       - |
         pip install -r requirements.txt
-        python -m pytest tests/ -v
+        python -m pytest test_main.py -v
 
   # Step 2: Build the Docker image
   - name: 'gcr.io/cloud-builders/docker'
