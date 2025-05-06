@@ -47,7 +47,6 @@ steps:
           --image=us-central1-docker.pkg.dev/$PROJECT_ID/csv-reporter-repo/csv-metrics-reporter:$COMMIT_SHA \
           --region=us-central1 \
           --platform=managed \
-          --allow-unauthenticated \
           --set-env-vars=GCP_PROJECT=$PROJECT_ID,BUCKET_NAME=$_BUCKET_NAME,RAW_DATA_FOLDER=$_RAW_DATA_FOLDER,REPORTS_FOLDER=$_REPORTS_FOLDER,PROCESSED_COLLECTION=$_PROCESSED_COLLECTION \
           --service-account=gcp-admin@elevated-column-458305-f8.iam.gserviceaccount.com
 
