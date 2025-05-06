@@ -1,0 +1,58 @@
+# Cloud Build configuration file for csv-metrics-reporter
+
+substitutions:
+  _BUCKET_NAME: gcs-csv-reporter
+  _RAW_DATA_FOLDER: raw-data
+  _REPORTS_FOLDER: reports
+  _PROCESSED_COLLECTION: processed_files
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+  # Step 1: Run unit tests
+  - name: 'python:3.9-slim'
+    id: 'Unit Tests'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        pip install -r requirements.txt
+        python -m pytest tests/ -v
+
+  # Step 2: Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: "Build"
+    args:
+      - 'build'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/csv-reporter-repo/csv-metrics-reporter:$COMMIT_SHA'
+      - '.'
+
+  # Step 3: Push the Docker image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Push'
+    args:
+      - 'push'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/csv-reporter-repo/csv-metrics-reporter:$COMMIT_SHA'
+
+  # Step 5: Deploy to cloud run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'Deploy-cloud-run'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud run deploy csv-metrics-reporter-prod \
+          --image=us-central1-docker.pkg.dev/$PROJECT_ID/csv-reporter-repo/csv-metrics-reporter:$COMMIT_SHA \
+          --region=us-central1 \
+          --platform=managed \
+          --set-env-vars=GCP_PROJECT=$PROJECT_ID,BUCKET_NAME=$_BUCKET_NAME,RAW_DATA_FOLDER=$_RAW_DATA_FOLDER,REPORTS_FOLDER=$_REPORTS_FOLDER,PROCESSED_COLLECTION=$_PROCESSED_COLLECTION \
+          --service-account=gcp-admin@elevated-column-458305-f8.iam.gserviceaccount.com
+
+# Store built images in Artifact Registry
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/csv-reporter-repo/csv-metrics-reporter:$COMMIT_SHA'
+
+# Timeout for the entire build process
+timeout: '1800s'  # 30 minutes
